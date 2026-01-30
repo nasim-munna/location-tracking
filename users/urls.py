@@ -5,6 +5,7 @@ from .views import (
     UserViewSet,
     DivisionListAPIView,
     DivisionEmployeeAPIView,
+    SaveFCMTokenAPIView,
 )
 
 router = DefaultRouter()
@@ -15,14 +16,8 @@ urlpatterns = [
     path("", include(router.urls)),
 
     # Division APIs
-    path(
-        "divisions/",
-        DivisionListAPIView.as_view(),
-        name="division-list"
+    path("divisions/",DivisionListAPIView.as_view(),name="division-list"),
+    path("divisions/<int:division_id>/employees/",DivisionEmployeeAPIView.as_view(),name="division-employees"
     ),
-    path(
-        "divisions/<int:division_id>/employees/",
-        DivisionEmployeeAPIView.as_view(),
-        name="division-employees"
-    ),
+    path("fcm-token/",SaveFCMTokenAPIView.as_view(),name="save-fcm-token"),
 ]

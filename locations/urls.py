@@ -7,6 +7,8 @@ from .views import (
     EmployeeMonthlyAttendanceAPIView,
     AdminAttendanceSummaryAPIView,
     DivisionLiveLocationAPIView,
+    GeofenceEventAPIView,
+    
 )
 
 urlpatterns = [
@@ -17,5 +19,7 @@ urlpatterns = [
     path("attendance/user/<uuid:user_id>/monthly/",EmployeeMonthlyAttendanceAPIView.as_view()),
     path("attendance/summary/", AdminAttendanceSummaryAPIView.as_view()),
     path("locations/division/<int:division_id>/live/",DivisionLiveLocationAPIView.as_view()),
+    path("geofence/events/", GeofenceEventAPIView.as_view()),
+
 
 ]

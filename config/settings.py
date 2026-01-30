@@ -9,11 +9,24 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from datetime import timedelta
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+import firebase_admin
+from firebase_admin import credentials
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+FIREBASE_SERVICE_ACCOUNT_PATH = BASE_DIR / "config" / "firebase_service_account.json"
+
+
+if FIREBASE_SERVICE_ACCOUNT_PATH.exists():
+    FIREBASE_CRED = credentials.Certificate(str(FIREBASE_SERVICE_ACCOUNT_PATH))
+else:
+    raise FileNotFoundError(f"Firebase file not found at: {FIREBASE_SERVICE_ACCOUNT_PATH}")
+
+firebase_admin.initialize_app(FIREBASE_CRED)
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -132,6 +145,20 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'u123456_tracking',
+#         'USER': 'u123456_tracking',
+#         'PASSWORD': 'YOUR_DB_PASSWORD',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         },
+#     }
+# }
+
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -201,3 +228,4 @@ SPECTACULAR_SETTINGS['SECURITY_DEFINITIONS'] = {
 
 
 STATIC_URL = 'static/'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

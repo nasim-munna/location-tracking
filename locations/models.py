@@ -34,6 +34,7 @@ class Attendance(models.Model):
         on_delete=models.CASCADE,
         related_name='attendance'
     )
+    was_inside = models.BooleanField(default=False)
     office = models.ForeignKey(Office, on_delete=models.CASCADE)
     check_in = models.DateTimeField(null=True, blank=True)
     check_out = models.DateTimeField(null=True, blank=True)
@@ -41,3 +42,17 @@ class Attendance(models.Model):
 
     class Meta:
         unique_together = ('user', 'date')
+
+class GeofenceEvent(models.Model):
+    EVENT_CHOICES = (
+        ("ENTER", "Enter"),
+        ("EXIT", "Exit"),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    office = models.ForeignKey(Office, on_delete=models.CASCADE)
+    event = models.CharField(max_length=5, choices=EVENT_CHOICES)
+    occurred_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} {self.event}"

@@ -5,6 +5,8 @@ from .serializers import MessageSerializer,BroadcastMessageSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiTypes
+from notifications.utils import send_push_notification
 
 from .models import Message
 from .serializers import MessageSerializer
@@ -29,11 +31,17 @@ class SendMessageAPIView(CreateAPIView):
         except User.DoesNotExist:
             raise PermissionDenied("Receiver not found")
 
-        # 🔐 Role rules
         if sender.role == "EMPLOYEE" and receiver.role != "SUPERADMIN":
             raise PermissionDenied("Employees can only message SuperAdmin")
 
-        serializer.save(sender=sender, receiver=receiver)
+        message = serializer.save(sender=sender, receiver=receiver)
+
+        send_push_notification(
+            users=[receiver],
+            title="New Message",
+            body=f"{sender.full_name}: {message.text[:50]}",
+            data={"type": "chat"}
+        )
 
 class InboxAPIView(ListAPIView):
     serializer_class = MessageSerializer
@@ -49,9 +57,12 @@ class InboxAPIView(ListAPIView):
 class UnreadCountAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: OpenApiTypes.OBJECT},
+        description="Returns the total count of unread messages for the logged-in user."
+    )
     def get(self, request):
         user = request.user
-
         count = Message.objects.filter(
             receiver=user,
             is_read=False
@@ -80,11 +91,14 @@ class ConversationAPIView(ListAPIView):
 class MarkMessageReadAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None, # No request body needed for this POST
+        responses={200: OpenApiTypes.OBJECT},
+    )
     def post(self, request, message_id):
         user = request.user
         message = get_object_or_404(Message, id=message_id)
 
-        # Only receiver can mark as read
         if message.receiver != user:
             raise PermissionDenied("Not allowed")
 
@@ -97,6 +111,10 @@ class MarkMessageReadAPIView(APIView):
 class MarkConversationReadAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     def post(self, request, user_id):
         user = request.user
 
@@ -113,6 +131,12 @@ class MarkConversationReadAPIView(APIView):
 
 class DivisionBroadcastAPIView(APIView):
     permission_classes = [IsAuthenticated]
+
+    # Explicitly link the serializer here so the documentation knows the input fields
+    @extend_schema(
+        request=BroadcastMessageSerializer, 
+        responses={200: OpenApiTypes.OBJECT}
+    )
 
     def post(self, request):
         user = request.user
@@ -149,8 +173,15 @@ class DivisionBroadcastAPIView(APIView):
         ]
 
         Message.objects.bulk_create(messages)
-
+        
+        send_push_notification(
+        users=[p.user for p in profiles],
+        title="Announcement",
+        body=text[:80],
+        data={"type": "broadcast"}
+        )
         return Response({
             "sent_to": len(messages),
             "division": division.name
         })
+        

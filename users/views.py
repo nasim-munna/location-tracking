@@ -1,9 +1,12 @@
 from rest_framework.viewsets import ModelViewSet
-from .models import User,Division
-from .serializers import UserCreateSerializer,DivisionSerializer,EmployeeMiniSerializer
+from .models import User,Division,FCMToken
+from .serializers import UserCreateSerializer,DivisionSerializer,EmployeeMiniSerializer,FCMTokenSerializer
 from .permissions import IsSuperAdmin,IsAdmin
 from rest_framework.generics import ListAPIView
-
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
@@ -43,3 +46,27 @@ class DivisionEmployeeAPIView(ListAPIView):
 
         return qs
 
+# Add this import at the top
+
+
+class SaveFCMTokenAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    # This tells Swagger to use FCMTokenSerializer for the request body
+    @extend_schema(
+        request=FCMTokenSerializer,
+        responses={200: {"type": "object", "properties": {"status": {"type": "string"}}}}
+    )
+    def post(self, request):
+        serializer = FCMTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        FCMToken.objects.update_or_create(
+            token=serializer.validated_data["token"],
+            defaults={
+                "user": request.user,
+                "device_type": serializer.validated_data["device_type"]
+            }
+        )
+
+        return Response({"status": "token_saved"})

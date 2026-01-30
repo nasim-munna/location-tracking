@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, EmployeeProfile,Division
+from .models import User, EmployeeProfile,Division, FCMToken
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -25,7 +25,6 @@ class DivisionSerializer(serializers.ModelSerializer):
         fields = ["id", "name"]
 
 class EmployeeMiniSerializer(serializers.ModelSerializer):
-    # 'full_name' field toiri korar jonno MethodField use kora hoyeche
     full_name = serializers.SerializerMethodField()
     division = serializers.CharField(source="profile.division.name", read_only=True)
 
@@ -33,7 +32,12 @@ class EmployeeMiniSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "full_name", "email", "division"]
 
-    # Ei function-ti first_name ebong last_name ke eksathe kore full_name banabe
-    def get_full_name(self, obj):
+    # Adding '-> str' fixes the warning
+    def get_full_name(self, obj) -> str:
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
+    
+class FCMTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FCMToken
+        fields = ["token", "device_type"]

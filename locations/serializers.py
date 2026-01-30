@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from .models import LocationLog, Attendance
+from .models import LocationLog, Attendance,GeofenceEvent
 from datetime import datetime
 from django.utils import timezone
-
+from drf_spectacular.utils import extend_schema_field # Import this if using drf-spectacular
 
 # -------------------------
 # CREATE (INPUT) SERIALIZER
@@ -29,26 +29,17 @@ class LocationCreateSerializer(serializers.ModelSerializer):
 # READ (OUTPUT) SERIALIZER
 # -------------------------
 class LocationReadSerializer(serializers.ModelSerializer):
-    # 'millis' field-ti database-e nei, tai ekhane manual-y define korte hobe
     millis = serializers.SerializerMethodField()
 
     class Meta:
         model = LocationLog
-        fields = [
-            'id',
-            'latitude',
-            'longitude',
-            'millis', # Ekhon eta valid hobe
-            'recorded_at',
-            'created_at',
-        ]
+        fields = ['id', 'latitude', 'longitude', 'millis', 'recorded_at', 'created_at']
 
-    def get_millis(self, obj):
-        # obj.recorded_at theke timestamp niye setake millisecond-e convert kora
+    # Add '-> int' to fix the type hint warning
+    def get_millis(self, obj) -> int:
         if obj.recorded_at:
             return int(obj.recorded_at.timestamp() * 1000)
-        return None
-
+        return 0
 # -------------------------
 # ATTENDANCE SERIALIZER
 # -------------------------
@@ -56,6 +47,8 @@ class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attendance
         fields = '__all__'
+
+
 
 
 class AttendanceReportSerializer(serializers.ModelSerializer):
@@ -72,7 +65,8 @@ class AttendanceReportSerializer(serializers.ModelSerializer):
             'late_minutes',
         ]
 
-    def get_status(self, obj):
+    # Add -> str to tell the documentation it returns a string
+    def get_status(self, obj) -> str:
         if not obj.check_in:
             return "ABSENT"
 
@@ -82,7 +76,8 @@ class AttendanceReportSerializer(serializers.ModelSerializer):
 
         return "PRESENT"
 
-    def get_late_minutes(self, obj):
+    # Add -> int to tell the documentation it returns an integer
+    def get_late_minutes(self, obj) -> int:
         if not obj.check_in:
             return 0
 
@@ -95,3 +90,20 @@ class AttendanceReportSerializer(serializers.ModelSerializer):
             return 0
 
         return int((obj.check_in - start_dt).total_seconds() / 60)
+
+
+class GeofenceEventSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(
+        source="user.full_name",
+        read_only=True
+    )
+
+    class Meta:
+        model = GeofenceEvent
+        fields = [
+            "id",
+            "user",
+            "user_name",
+            "event",
+            "occurred_at",
+        ]

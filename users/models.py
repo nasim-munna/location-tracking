@@ -55,4 +55,19 @@ class EmployeeProfile(models.Model):
     def __str__(self):
         return self.user.email
 
+class FCMToken(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="fcm_tokens"
+    )
+    token = models.CharField(max_length=255, unique=True)
+    device_type = models.CharField(
+        max_length=10,
+        choices=[("android", "Android"), ("ios", "iOS")]
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} ({self.device_type})"
 
