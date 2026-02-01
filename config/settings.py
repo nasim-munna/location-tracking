@@ -39,7 +39,7 @@ SECRET_KEY = 'django-insecure-#h*_b7g^8bfqe1ilsihwm5ouja@irjej)9neu&5g&(o00()s83
 DEBUG = True
 
 ALLOWED_HOSTS = []
-# ALLOWED_HOSTS = ['test.hellopartybd.com', 'www.hellopartybd.com']
+# ALLOWED_HOSTS = ['tracking.metaboxsoft.com', 'www.tracking.metaboxsoft.com']
 
 # Application definition
 
@@ -148,14 +148,11 @@ DATABASES = {
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'u123456_tracking',
-#         'USER': 'u123456_tracking',
-#         'PASSWORD': 'YOUR_DB_PASSWORD',
+#         'NAME': 'hellopar_location',
+#         'USER': 'hellopar_track',
+#         'PASSWORD': 'L;Hi~.DdZfP_[MHc',
 #         'HOST': 'localhost',
 #         'PORT': '3306',
-#         'OPTIONS': {
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-#         },
 #     }
 # }
 
@@ -226,6 +223,9 @@ SPECTACULAR_SETTINGS['SECURITY_DEFINITIONS'] = {
     }
 }
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

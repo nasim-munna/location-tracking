@@ -138,8 +138,8 @@ class SendLocationAPIView(CreateAPIView):
                 {
                     "type": "live_location",
                     "data": {
-                        "user_id": str(user.id),
-                        "name": user.full_name,
+                            "user_id": str(user.id),
+                            "name": getattr(user, "name", user.email),
                         "lat": lat,
                         "lng": lng,
                         "time": now.isoformat(),
@@ -276,13 +276,19 @@ class MyMonthlyAttendanceAPIView(ListAPIView):
     serializer_class = AttendanceReportSerializer
 
     def get_queryset(self):
-        month = self.request.query_params.get("month")  # YYYY-MM
-        year, month = map(int, month.split("-"))
+        month_param = self.request.query_params.get("month")  # YYYY-MM
+        if not month_param:
+            return Attendance.objects.none()
+
+        try:
+            year, month_val = map(int, month_param.split("-"))
+        except (ValueError, TypeError):
+            return Attendance.objects.none()
 
         return Attendance.objects.filter(
             user=self.request.user,
             date__year=year,
-            date__month=month,
+            date__month=month_val,
         ).order_by("date")
 
 
@@ -301,31 +307,29 @@ class EmployeeMonthlyAttendanceAPIView(ListAPIView):
             ).exists():
                 raise PermissionDenied("Not your employee")
 
-        month = self.request.query_params.get("month")
-        year, month = map(int, month.split("-"))
+        month_param = self.request.query_params.get("month")
+        if not month_param:
+            return Attendance.objects.none()
+
+        try:
+            year, month_val = map(int, month_param.split("-"))
+        except (ValueError, TypeError):
+            return Attendance.objects.none()
 
         return Attendance.objects.filter(
             user_id=user_id,
             date__year=year,
-            date__month=month,
+            date__month=month_val,
         ).order_by("date")
 
 
 # ======================================================
 # ADMIN DASHBOARD SUMMARY
 # ======================================================
-# 1. Add this import at the top
 
-
-# ... (rest of your imports)
-
-# ======================================================
-# ADMIN DASHBOARD SUMMARY
-# ======================================================
 class AdminAttendanceSummaryAPIView(APIView):
     permission_classes = [IsAdmin, IsSuperAdmin]
 
-    # 2. Add this decorator to explain the GET response
     @extend_schema(
         responses={
             200: OpenApiTypes.OBJECT  # Tells the tool it returns a JSON object
@@ -367,19 +371,41 @@ class DivisionLiveLocationAPIView(APIView):
         description="Returns a list of the latest locations for all employees in a specific division."
     )
     def get(self, request, division_id):
-        # ... your existing code ...
         user = request.user
-        # (The rest of your logic remains the same)
-        employees = User.objects.filter(
+
+        # Restrict Admins to their own employees
+        employees_qs = User.objects.filter(
             profile__division_id=division_id,
             role="EMPLOYEE",
         )
-        # ...
+
+        if user.role == "ADMIN":
+            employees_qs = employees_qs.filter(profile__admin=user)
+
+        data = []
+        for emp in employees_qs:
+            loc = (
+                LocationLog.objects.filter(user=emp)
+                .order_by("-recorded_at")
+                .first()
+            )
+
+            if not loc:
+                continue
+
+            data.append({
+                "user_id": str(emp.id),
+                "name": getattr(emp, "full_name", emp.email),
+                "lat": loc.latitude,
+                "lng": loc.longitude,
+                "time": loc.recorded_at.isoformat(),
+            })
+
         return Response(data)
 
 class GeofenceEventAPIView(ListAPIView):
     serializer_class = GeofenceEventSerializer
-    permission_classes = [IsAdmin,IsSuperAdmin]
+    permission_classes = [IsAdmin, IsSuperAdmin]
 
     def get_queryset(self):
         qs = GeofenceEvent.objects.select_related("user")

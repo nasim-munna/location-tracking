@@ -3,11 +3,11 @@ from .models import Message
 
 class MessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(
-        source="sender.full_name",
+           source="sender.name",
         read_only=True
     )
     receiver_name = serializers.CharField(
-        source="receiver.full_name",
+           source="receiver.name",
         read_only=True
     )
 

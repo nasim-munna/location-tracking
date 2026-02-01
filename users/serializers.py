@@ -12,11 +12,12 @@ class UserCreateSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         user = User.objects.create(**validated_data)
         user.set_password(password)
-        user.save()
+        user.save()       
 
         if user.role == 'EMPLOYEE':
             EmployeeProfile.objects.create(user=user)
-
+        if user.role == "EMPLOYEE" and not validated_data.get("division"):
+            raise serializers.ValidationError("division_id is required")
         return user
     
 class DivisionSerializer(serializers.ModelSerializer):
@@ -34,8 +35,11 @@ class EmployeeMiniSerializer(serializers.ModelSerializer):
 
     # Adding '-> str' fixes the warning
     def get_full_name(self, obj) -> str:
-        name = f"{obj.first_name} {obj.last_name}".strip()
-        return name if name else obj.username
+        # Use `name` field on the custom User model, fallback to email
+        name_val = getattr(obj, "name", None)
+        if name_val:
+            return name_val
+        return obj.email
     
 class FCMTokenSerializer(serializers.ModelSerializer):
     class Meta:

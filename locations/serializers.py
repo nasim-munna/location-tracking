@@ -94,7 +94,7 @@ class AttendanceReportSerializer(serializers.ModelSerializer):
 
 class GeofenceEventSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(
-        source="user.full_name",
+        source="user.name",
         read_only=True
     )
 

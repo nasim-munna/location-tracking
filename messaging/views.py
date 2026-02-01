@@ -1,22 +1,17 @@
 from rest_framework.generics import CreateAPIView, ListAPIView
-from rest_framework.exceptions import PermissionDenied
-from .models import Message
-from .serializers import MessageSerializer,BroadcastMessageSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from drf_spectacular.utils import extend_schema, OpenApiTypes
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from notifications.utils import send_push_notification
 
 from .models import Message
-from .serializers import MessageSerializer
+from .serializers import MessageSerializer, BroadcastMessageSerializer
 from .permissions import CanSendMessage
-from users.models import User
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
-
-from users.models import Division, EmployeeProfile
-from rest_framework.exceptions import PermissionDenied
+from users.models import User, Division, EmployeeProfile
 
 class SendMessageAPIView(CreateAPIView):
     serializer_class = MessageSerializer
@@ -39,8 +34,8 @@ class SendMessageAPIView(CreateAPIView):
         send_push_notification(
             users=[receiver],
             title="New Message",
-            body=f"{sender.full_name}: {message.text[:50]}",
-            data={"type": "chat"}
+            body=f"{getattr(sender, 'name', sender.email)}: {message.text[:50]}",
+            data={"type": "chat"},
         )
 
 class InboxAPIView(ListAPIView):

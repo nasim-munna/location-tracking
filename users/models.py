@@ -12,7 +12,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
-    role = models.CharField(max_length=20, choices=Role.choices)
+    role = models.CharField(max_length=20, choices=Role.choices,default=Role.EMPLOYEE)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -47,8 +47,9 @@ class EmployeeProfile(models.Model):
     
     division = models.ForeignKey(
         Division,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
+        blank=True,
         related_name="employees"
     )
 

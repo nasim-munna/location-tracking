@@ -4,11 +4,11 @@ from django.conf import settings
 User = settings.AUTH_USER_MODEL
 
 class LocationLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    recorded_at = models.DateTimeField(db_index=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     millis = models.BigIntegerField(null=True, blank=True) # Eita add korun
-    recorded_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
