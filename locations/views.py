@@ -36,117 +36,34 @@ from .utils import calculate_distance
 # ======================================================
 # SEND LOCATION (EMPLOYEE)
 # ======================================================
+# locations/views.py
+
 class SendLocationAPIView(CreateAPIView):
     serializer_class = LocationCreateSerializer
     permission_classes = [IsEmployee]
-    throttle_classes = [GPSThrottle]
 
     def perform_create(self, serializer):
         user = self.request.user
         location = serializer.save(user=user)
-        vd = serializer.validated_data
-
-        lat = vd.get("latitude")
-        lng = vd.get("longitude")
-        now = timezone.now()
-
-        # --------------------------------------------------
-        # PERSONAL WEBSOCKET (optional)
-        # --------------------------------------------------
+        
+        # ১. ডাটাবেসে সেভ হওয়ার পর WebSocket এ অ্যাডমিনকে জানানো
         channel_layer = get_channel_layer()
-        if channel_layer:
-            async_to_sync(channel_layer.group_send)(
-                f"location_{user.id}",
-                {
-                    "type": "send_location",
-                    "data": {
-                        "lat": lat,
-                        "lng": lng,
-                        "millis": vd.get("millis"),
-                    },
-                },
-            )
-
-        # --------------------------------------------------
-        # ATTENDANCE + GEOFENCE
-        # --------------------------------------------------
-        office = Office.objects.first()
-        if not office:
-            return
-
-        try:
-            lat = float(lat)
-            lng = float(lng)
-            office_lat = float(office.latitude)
-            office_lng = float(office.longitude)
-        except (TypeError, ValueError):
-            return
-
-        distance = calculate_distance(lat, lng, office_lat, office_lng)
-        inside = distance <= office.radius_meters
-
-        today = now.date()
-
-        attendance, _ = Attendance.objects.get_or_create(
-            user=user,
-            date=today,
-            defaults={"office": office},
-        )
-
-        # CHECK IN
-        if inside and attendance.check_in is None:
-            attendance.check_in = now
-            attendance.save(update_fields=["check_in"])
-
-        # CHECK OUT
-        if not inside and attendance.check_in and attendance.check_out is None:
-            attendance.check_out = now
-            attendance.save(update_fields=["check_out"])
-
-        # --------------------------------------------------
-        # GEOFENCE ENTER / EXIT
-        # --------------------------------------------------
-        if inside and not attendance.was_inside:
-            GeofenceEvent.objects.create(
-                user=user,
-                office=office,
-                event="ENTER",
-            )
-
-        if not inside and attendance.was_inside:
-            GeofenceEvent.objects.create(
-                user=user,
-                office=office,
-                event="EXIT",
-            )
-
-        attendance.was_inside = inside
-        attendance.save(update_fields=["was_inside"])
-
-        # --------------------------------------------------
-        # DIVISION LIVE MAP BROADCAST
-        # --------------------------------------------------
-        try:
-            profile = EmployeeProfile.objects.get(user=user)
-            division_id = profile.division_id
-        except EmployeeProfile.DoesNotExist:
-            division_id = None
-
-        if division_id and channel_layer:
+        division_id = user.profile.division_id
+        
+        if division_id:
             async_to_sync(channel_layer.group_send)(
                 f"division_{division_id}",
                 {
-                    "type": "live_location",
+                    "type": "broadcast_location", # consumers.py এর মেথড নামের সাথে মিল থাকতে হবে
                     "data": {
-                            "user_id": str(user.id),
-                            "name": getattr(user, "name", user.email),
-                        "lat": lat,
-                        "lng": lng,
-                        "time": now.isoformat(),
-                    },
-                },
+                        "user_id": str(user.id),
+                        "name": user.full_name,
+                        "lat": location.latitude,
+                        "lng": location.longitude,
+                        "time": str(location.recorded_at)
+                    }
+                }
             )
-
 
 # ======================================================
 # EMPLOYEE LOCATION HISTORY

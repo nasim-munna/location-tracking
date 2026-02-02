@@ -26,8 +26,9 @@ class SendMessageAPIView(CreateAPIView):
         except User.DoesNotExist:
             raise PermissionDenied("Receiver not found")
 
-        if sender.role == "EMPLOYEE" and receiver.role != "SUPERADMIN":
-            raise PermissionDenied("Employees can only message SuperAdmin")
+        # messaging/views.py logic change
+        if sender.role == "EMPLOYEE" and receiver.role not in ["ADMIN", "SUPERADMIN"]:
+            raise PermissionDenied("You can only message Admin or SuperAdmin.")
 
         message = serializer.save(sender=sender, receiver=receiver)
 
