@@ -14,6 +14,22 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from drf_spectacular.utils import extend_schema
 
+
+from rest_framework import generics, status
+from rest_framework.permissions import AllowAny  
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import UserCreateSerializer 
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    # এখানেও UserCreateSerializer দিন
+    serializer_class = UserCreateSerializer 
+    permission_classes = [AllowAny]
+
+# ২. লগইন ভিউ (Login View) - এটি SimpleJWT ব্যবহার করবে
+class LoginView(TokenObtainPairView):
+    permission_classes = [AllowAny]
+
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
@@ -32,7 +48,7 @@ class DivisionListAPIView(ListAPIView):
 
 class DivisionEmployeeAPIView(ListAPIView):
     serializer_class = EmployeeMiniSerializer
-    permission_classes = [IsAdmin,IsSuperAdmin]
+    permission_classes = [IsAdmin | IsSuperAdmin] # OR কন্ডিশন ব্যবহার করা ভালো
 
     def get_queryset(self):
         division_id = self.kwargs["division_id"]
@@ -45,6 +61,8 @@ class DivisionEmployeeAPIView(ListAPIView):
 
         if user.role == "ADMIN":
             qs = qs.filter(profile__admin=user)
+            
+        return qs # এই রিটার্নটি আপনার কোডে ছিল না
 
 class SaveFCMTokenAPIView(APIView):
     permission_classes = [IsAuthenticated]
